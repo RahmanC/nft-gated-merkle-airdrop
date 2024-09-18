@@ -1,11 +1,16 @@
 import hre, { ethers } from "hardhat";
+const helpers = require("@nomicfoundation/hardhat-network-helpers");
+
 const claimList = require("./files/claimants.json");
 
 async function main() {
   // Select a claimer from the claimants list
-  const claimer = Object.keys(claimList)[7]; // Simulated claimer for testing
+  const claimer = Object.keys(claimList)[0]; // Simulated claimer for testing
   const amount = claimList[claimer].amount;
   const proof = claimList[claimer].proof;
+
+  await helpers.impersonateAccount(claimer);
+  const impersonatedAccount = await ethers.getSigner(claimer);
 
   const ROOT =
     "0xfd7ab7a5c242aa57367def989f37dea7821df12d11d0172fff4f3d126fe7c921";
@@ -40,14 +45,16 @@ async function main() {
 
   // Claim the airdrop
   const claimAmount = ethers.parseEther(amount);
-  const signer = await ethers.getSigner(claimer);
+  // const signer = await ethers.getSigner(claimer);
 
-  const claimTx = await merkleAirdrop.connect(signer).claim(claimAmount, proof);
+  const claimTx = await merkleAirdrop
+    .connect(impersonatedAccount)
+    .claim(claimAmount, proof);
   await claimTx.wait();
   console.log("Airdrop claimed successfully");
 
   // Check balances
-  const userBalance = await airdropToken.balanceOf(signer.address);
+  const userBalance = await airdropToken.balanceOf(impersonatedAccount.address);
   console.log(`User's balance after claim: ${ethers.formatEther(userBalance)}`);
 }
 
